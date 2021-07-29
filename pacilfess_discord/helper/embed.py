@@ -13,6 +13,6 @@ def create_embed(confession: str, attachment: Optional[str] = None):
 
     embed.set_footer(
         text="If this confession breaks the rule,"
-        + ' you can report it using "/report [message link]"'
+        + " you can react with ❌ to vote for deletion. (or ping the mods)"
     )
     return embed

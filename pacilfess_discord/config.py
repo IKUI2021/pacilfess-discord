@@ -11,6 +11,7 @@ class Config(DataClassJsonMixin):
     channel_id: int
     token: str
     guild_id: int
+    minimum_vote: int
 
 
 with open("config.json", "r") as f:

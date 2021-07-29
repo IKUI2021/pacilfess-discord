@@ -52,6 +52,7 @@ class Fess(Cog):
         current_time = datetime.now()
         embed = create_embed(confession, attachment)
         fess_message = await self.bot.target_channel.send(embed=embed)
+        await fess_message.add_reaction("❌")
 
         # Save to database for moderation purposes.
         await self.bot.db.execute(
