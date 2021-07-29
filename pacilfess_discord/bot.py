@@ -13,6 +13,20 @@ with open("config.json", "r") as f:
 
 
 class Fess(Bot):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.slash = SlashCommand(self, sync_commands=True)
+        for cog in config["cogs"]:
+            try:
+                self.load_extension(cog)
+            except Exception as exc:
+                print(
+                    "Could not load extension {0} due to {1.__class__.__name__}: {1}".format(
+                        cog, exc
+                    )
+                )
+
     async def on_ready(self):
         print("Running!")
         self.target_channel: TextChannel = self.get_channel(config["channel_id"])
@@ -31,18 +45,6 @@ class Fess(Bot):
         await super().close()
 
 
-bot = Fess(command_prefix="p!", intents=discord.Intents.default())
-slash = SlashCommand(bot, sync_commands=True)
-for cog in config["cogs"]:
-    try:
-        bot.load_extension(cog)
-    except Exception as exc:
-        print(
-            "Could not load extension {0} due to {1.__class__.__name__}: {1}".format(
-                cog, exc
-            )
-        )
-
-
 def run():
+    bot = Fess(command_prefix="p!", intents=discord.Intents.default())
     bot.run(config["token"])
