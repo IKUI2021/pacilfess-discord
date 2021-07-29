@@ -1,5 +1,6 @@
-from discord import Embed
 from typing import Optional
+
+from discord import Embed
 
 
 def create_embed(confession: str, attachment: Optional[str] = None):
