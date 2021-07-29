@@ -46,9 +46,7 @@ class Fess(Bot):
         # OK I legit don't know why is Reaction.emoji here is an str but on the event object,
         # its a PartialEmoji, kinda makes it a huge pain in the ass to be honest.
         reaction = cast(Reaction, discord.utils.get(message.reactions, emoji="❌"))
-        if (
-            event.emoji.name == "❌" and reaction.count > config.minimum_vote + 1
-        ):  # +1 because bot also counts
+        if event.emoji.name == "❌" and reaction.count > config.minimum_vote:
             await message.edit(
                 embed=create_embed("*This confession has been deleted by vote.*")
             )
