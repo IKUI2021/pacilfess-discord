@@ -9,6 +9,7 @@ from dataclasses_json import DataClassJsonMixin
 class Config(DataClassJsonMixin):
     db_path: str
     admins: List[int]
+    admin_roles: List[int]
     channel_id: int
     token: str
     guild_id: int
