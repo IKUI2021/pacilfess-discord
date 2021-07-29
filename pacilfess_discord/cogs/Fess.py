@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess as FessBot
 
 
-def create_embed(confession, attachment):
+def create_embed(confession: str, attachment: Optional[str] = None):
     confession_content = "> " + confession
     embed = Embed(
         title="Anonymous confession",
