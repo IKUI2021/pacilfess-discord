@@ -25,3 +25,6 @@ class DBHelper:
         await cur.close()
 
         return result
+
+    async def close(self):
+        await self.db.close()

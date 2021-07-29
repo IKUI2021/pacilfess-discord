@@ -1,10 +1,11 @@
 import re
-from typing import Optional, TYPE_CHECKING
-from discord import Embed
-from discord_slash import cog_ext, SlashContext
-from discord_slash.utils.manage_commands import create_option
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Optional
+
 from discord.ext.commands import Cog
+from discord_slash import SlashContext, cog_ext
+from discord_slash.utils.manage_commands import create_option
+from pacilfess_discord.helper.embed import create_embed
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess as FessBot
@@ -12,22 +13,6 @@ if TYPE_CHECKING:
 DISCORD_RE = re.compile(
     r"http[s]?:\/\/discord\.com\/channels\/(?P<GUILD>[0-9]+)\/(?P<CHANNEL>[0-9]+)\/(?P<MESSAGE>[0-9]+)"
 )
-
-
-def create_embed(confession: str, attachment: Optional[str] = None):
-    confession_content = "> " + confession
-    embed = Embed(
-        title="Anonymous confession",
-        description=confession_content,
-    )
-    if attachment:
-        embed.set_image(url=attachment)
-
-    embed.set_footer(
-        text="If this confession breaks the rule,"
-        + ' you can report it using "/report [message link]"'
-    )
-    return embed
 
 
 class Fess(Cog):
