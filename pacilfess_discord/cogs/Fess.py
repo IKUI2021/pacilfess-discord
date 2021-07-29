@@ -60,10 +60,10 @@ class Fess(Cog):
         attachment: Optional[str] = None,
     ):
         # Check if sender is banned or not.
-        cur = await self.bot.db.execute(
+        res = await self.bot.db.fetchone(
             "SELECT * FROM banned_users WHERE id=?", (ctx.author_id,)
         )
-        if await cur.fetchone():
+        if res:
             ctx.send("You are banned from sending a confession.")
             return
 
@@ -72,8 +72,7 @@ class Fess(Cog):
         fess_message = await self.bot.target_channel.send(embed=embed)
 
         # Save to database for moderation purposes.
-        cur = await self.bot.db.cursor()
-        await cur.execute(
+        await self.bot.db.execute(
             "INSERT INTO confessions VALUES (?, ?, ?, ?, ?)",
             (
                 fess_message.id,
@@ -83,7 +82,6 @@ class Fess(Cog):
                 current_time.timestamp(),
             ),
         )
-        await self.bot.db.commit()
         await ctx.send("Done!", hidden=True)
 
     @cog_ext.cog_slash(
@@ -109,7 +107,7 @@ class Fess(Cog):
                 await ctx.send("Invalid confession link!", hidden=True)
                 return
 
-            cur = await self.bot.db.execute(
+            confess = await self.bot.db.fetchone(
                 "SELECT * FROM confessions "
                 + "WHERE author=? AND sendtime>=? AND message_id=? "
                 + "ORDER BY sendtime DESC",
@@ -120,14 +118,13 @@ class Fess(Cog):
                 ),
             )
         else:
-            cur = await self.bot.db.execute(
+            confess = await self.bot.db.fetchone(
                 "SELECT * FROM confessions "
                 + "WHERE author=? AND sendtime>=? "
                 + "ORDER BY sendtime DESC",
                 (ctx.author_id, five_mins_ago.timestamp()),
             )
 
-        confess = await cur.fetchone()
         if not confess:
             await ctx.send(
                 "No confession earlier than 5 minutes ago found.",
@@ -141,12 +138,10 @@ class Fess(Cog):
             embed=create_embed("*This confession has been deleted by the author.*")
         )
 
-        cur = await self.bot.db.cursor()
-        await cur.execute(
+        await self.bot.db.execute(
             "DELETE FROM confessions WHERE message_id=?",
             (confess_id,),
         )
-        await self.bot.db.commit()
         await ctx.send("Done!", hidden=True)
 
 

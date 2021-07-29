@@ -6,6 +6,7 @@ from discord.channel import TextChannel
 from discord.ext.commands import Bot
 from discord_slash import SlashCommand
 
+from pacilfess_discord.helper.db import DBHelper
 from pacilfess_discord.typing import ConfigType
 
 with open("config.json", "r") as f:
@@ -36,7 +37,7 @@ class Fess(Bot):
     async def start(self, *args, **kwargs):
         # Can't really think of a better to place to connect, so I'm placing it right after
         # run() execution, should be fine.
-        self.db = await aiosqlite.connect(config["db_path"])
+        self.db = DBHelper(await aiosqlite.connect(config["db_path"]))
         await super().start(*args, **kwargs)
 
     async def close(self):
