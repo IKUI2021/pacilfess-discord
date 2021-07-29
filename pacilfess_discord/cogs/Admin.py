@@ -22,8 +22,9 @@ class Admin(Cog):
     def __init__(self, bot: "Fess"):
         self.bot = bot
 
-    @cog_ext.cog_slash(
-        name="fessmute",
+    @cog_ext.cog_subcommand(
+        base="fessmin",
+        name="mute",
         description="Temporarily mute/ban a user for a specific time.",
         guild_ids=[863499218449858570],
         options=[
@@ -74,8 +75,9 @@ class Admin(Cog):
             f"User has been muted until `{lift_datetime.isoformat(' ')}`.", hidden=True
         )
 
-    @cog_ext.cog_slash(
-        name="fessunmute",
+    @cog_ext.cog_subcommand(
+        base="fessmin",
+        name="unmute",
         description="Unmutes a user.",
         guild_ids=[863499218449858570],
         options=[
