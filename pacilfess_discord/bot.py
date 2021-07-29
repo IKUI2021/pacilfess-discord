@@ -13,12 +13,18 @@ with open("config.json", "r") as f:
     config: ConfigType = json.load(f)
 
 
+cogs = [
+    "pacilfess_discord.cogs.Fess",
+    "pacilfess_discord.cogs.Admin",
+]
+
+
 class Fess(Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.slash = SlashCommand(self, sync_commands=True)
-        for cog in config["cogs"]:
+        for cog in cogs:
             try:
                 self.load_extension(cog)
             except Exception as exc:
