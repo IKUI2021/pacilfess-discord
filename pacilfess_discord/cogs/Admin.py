@@ -2,10 +2,12 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Match, cast
 
 from discord import Member
+import discord
 from discord.ext.commands import Cog
 from discord_slash import SlashContext, cog_ext
 from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option, generate_permissions
+from prettytable import PrettyTable
 
 from pacilfess_discord.config import config
 from pacilfess_discord.helper.embed import create_embed
@@ -93,8 +95,6 @@ class Admin(Cog):
                 required=True,
             )
         ],
-        base_default_permission=False,
-        base_permissions={config.guild_id: command_permissions},
     )
     async def _unmute(self, ctx: SlashContext, user: Member):
         existing_ban = await self.bot.db.fetchone(
@@ -122,8 +122,6 @@ class Admin(Cog):
                 required=True,
             )
         ],
-        base_default_permission=False,
-        base_permissions={config.guild_id: command_permissions},
     )
     async def _delete(self, ctx: SlashContext, link: str):
         re_result = DISCORD_RE.search(link)
@@ -154,6 +152,27 @@ class Admin(Cog):
             (confess_id,),
         )
         await ctx.send("Done!", hidden=True)
+
+    @cog_ext.cog_subcommand(
+        base="fessmin",
+        name="mutelist",
+        description="List all muted users.",
+        guild_ids=[config.guild_id],
+    )
+    async def _mutelist(self, ctx: SlashContext):
+        users = await self.bot.db.fetchall("SELECT * FROM banned_users")
+        if users:
+            table = PrettyTable(["Username", "Lift datetime"])
+            for u in users:
+                table.add_row(
+                    [u[1], datetime.fromtimestamp(u[2]).isoformat(" ", "seconds")]
+                )
+            desc = f"```\r\n{table.get_string()}\r\n```"
+        else:
+            desc = "No muted users."
+
+        embed = discord.Embed(title="Muted users", description=desc)
+        await ctx.send(embed=embed, hidden=True)
 
 
 def setup(bot: "Fess"):

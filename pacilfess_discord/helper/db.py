@@ -20,9 +20,9 @@ class DBHelper:
 
         return result
 
-    async def fetchmany(self, sql: str, parameters: Iterable = None):
+    async def fetchall(self, sql: str, parameters: Iterable = None):
         cur = await self.db.execute(sql, parameters)
-        result = await cur.fetchmany()
+        result = await cur.fetchall()
         await cur.close()
 
         return result

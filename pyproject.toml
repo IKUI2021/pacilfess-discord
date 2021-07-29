@@ -10,6 +10,7 @@ python = "^3.9"
 discord-py-slash-command = "^2.3.2"
 aiosqlite = "^0.17.0"
 dataclasses-json = "^0.5.4"
+prettytable = "^2.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
