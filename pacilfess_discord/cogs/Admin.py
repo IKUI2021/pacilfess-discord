@@ -76,7 +76,8 @@ class Admin(Cog):
         )
 
         await ctx.send(
-            f"User has been muted until `{lift_datetime.isoformat(' ')}`.", hidden=True
+            f"User has been muted until `{lift_datetime.isoformat(' ', 'seconds')}`.",
+            hidden=True,
         )
 
     @cog_ext.cog_subcommand(

@@ -47,7 +47,10 @@ class Fess(Cog):
             "SELECT * FROM banned_users WHERE id=?", (ctx.author_id,)
         )
         if res:
-            ctx.send("You are banned from sending a confession.")
+            lift_datetime = datetime.fromtimestamp(res[2])
+            ctx.send(
+                f"You are banned from sending a confession until {lift_datetime.isoformat(' ', 'seconds')}."
+            )
             return
 
         current_time = datetime.now()
