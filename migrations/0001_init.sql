@@ -8,5 +8,6 @@ CREATE TABLE confessions (
 
 CREATE TABLE banned_users (
     id INTEGER PRIMARY KEY,
-    username REAL NOT NULL
+    username TEXT NOT NULL,
+    timeout INTEGER NOT NULL
 );
