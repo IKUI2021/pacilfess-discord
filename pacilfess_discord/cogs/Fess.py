@@ -6,6 +6,7 @@ from discord.ext.commands import Cog
 from discord_slash import SlashContext, cog_ext
 from discord_slash.utils.manage_commands import create_option
 from pacilfess_discord.helper.embed import create_embed
+from pacilfess_discord.config import config
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess as FessBot
@@ -22,7 +23,7 @@ class Fess(Cog):
     @cog_ext.cog_slash(
         name="confess",
         description="Submits a confession.",
-        guild_ids=[863499218449858570],
+        guild_ids=[config.guild_id],
         options=[
             create_option(
                 name="confession",
@@ -72,7 +73,7 @@ class Fess(Cog):
     @cog_ext.cog_slash(
         name="delete",
         description="Deletes a confession.",
-        guild_ids=[863499218449858570],
+        guild_ids=[config.guild_id],
         options=[
             create_option(
                 name="link",

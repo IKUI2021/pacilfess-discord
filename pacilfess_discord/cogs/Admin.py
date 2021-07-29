@@ -9,6 +9,7 @@ from discord_slash import SlashContext, cog_ext
 from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 from pacilfess_discord.helper.embed import create_embed
+from pacilfess_discord.config import config
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess
@@ -26,7 +27,7 @@ class Admin(Cog):
         base="fessmin",
         name="mute",
         description="Temporarily mute/ban a user for a specific time.",
-        guild_ids=[863499218449858570],
+        guild_ids=[config.guild_id],
         options=[
             create_option(
                 name="user",
@@ -79,7 +80,7 @@ class Admin(Cog):
         base="fessmin",
         name="unmute",
         description="Unmutes a user.",
-        guild_ids=[863499218449858570],
+        guild_ids=[config.guild_id],
         options=[
             create_option(
                 name="user",
