@@ -1,4 +1,3 @@
-import re
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional
 
@@ -7,13 +6,10 @@ from discord_slash import SlashContext, cog_ext
 from discord_slash.utils.manage_commands import create_option
 from pacilfess_discord.helper.embed import create_embed
 from pacilfess_discord.config import config
+from pacilfess_discord.helper.regex import DISCORD_RE
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess as FessBot
-
-DISCORD_RE = re.compile(
-    r"http[s]?:\/\/discord\.com\/channels\/(?P<GUILD>[0-9]+)\/(?P<CHANNEL>[0-9]+)\/(?P<MESSAGE>[0-9]+)"
-)
 
 
 class Fess(Cog):

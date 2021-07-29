@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING, cast, Match
-import re
 
 from datetime import datetime, timedelta
 from discord import Member
@@ -10,13 +9,10 @@ from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option
 from pacilfess_discord.helper.embed import create_embed
 from pacilfess_discord.config import config
+from pacilfess_discord.helper.regex import DISCORD_RE, ETA_RE
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess
-
-ETA_RE = re.compile(
-    r"(?:(?P<days>\d+)d)?(?:(?P<hours>\d+)h)?(?:(?P<minutes>\d+)m)?(?:(?P<seconds>\d+)s)?"
-)
 
 
 class Admin(Cog):
@@ -102,6 +98,50 @@ class Admin(Cog):
 
         await self.bot.db.execute("DELETE FROM banned_users WHERE id=?", (user.id,))
         await ctx.send("User has been unmuted.", hidden=True)
+
+    @cog_ext.cog_subcommand(
+        base="fessmin",
+        name="delete",
+        description="Deletes a confess.",
+        guild_ids=[config.guild_id],
+        options=[
+            create_option(
+                name="link",
+                description="Message link to confess.",
+                option_type=SlashCommandOptionType.STRING,
+                required=True,
+            )
+        ],
+    )
+    async def _delete(self, ctx: SlashContext, link: str):
+        re_result = DISCORD_RE.search(link)
+        if not re_result:
+            await ctx.send("Invalid confession link!", hidden=True)
+            return
+
+        confess = await self.bot.db.fetchone(
+            "SELECT * FROM confessions WHERE message_id=?",
+            (int(re_result.group("MESSAGE")),),
+        )
+
+        if not confess:
+            await ctx.send(
+                "No such confession found.",
+                hidden=True,
+            )
+            return
+
+        confess_id: int = confess[0]
+        confess_msg = await self.bot.target_channel.fetch_message(confess_id)
+        await confess_msg.edit(
+            embed=create_embed("*This confession has been deleted by the author.*")
+        )
+
+        await self.bot.db.execute(
+            "DELETE FROM confessions WHERE message_id=?",
+            (confess_id,),
+        )
+        await ctx.send("Done!", hidden=True)
 
 
 def setup(bot: "Fess"):
