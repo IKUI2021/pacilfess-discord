@@ -42,18 +42,28 @@ class Fess(Cog):
         confession: str,
         attachment: Optional[str] = None,
     ):
+        current_time = datetime.now()
+
         # Check if sender is banned or not.
         res = await self.bot.db.fetchone(
             "SELECT * FROM banned_users WHERE id=?", (ctx.author_id,)
         )
         if res:
             lift_datetime = datetime.fromtimestamp(res[2])
-            ctx.send(
-                f"You are banned from sending a confession until {lift_datetime.isoformat(' ', 'seconds')}."
-            )
-            return
 
-        current_time = datetime.now()
+            if current_time < lift_datetime:
+                await ctx.send(
+                    "You are banned from sending a confession until "
+                    + f"`{lift_datetime.isoformat(' ', 'seconds')}`.",
+                    hidden=True,
+                )
+                return
+            else:
+                # We already get past the lifting time, so remove our entry from DB.
+                await self.bot.db.execute(
+                    "DELETE FROM banned_users WHERE id=?", (ctx.author_id,)
+                )
+
         embed = create_embed(confession, attachment)
         fess_message = await self.bot.target_channel.send(embed=embed)
         await fess_message.add_reaction("❌")
