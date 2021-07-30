@@ -1,4 +1,5 @@
-from typing import cast
+from sqlite3 import Row
+from typing import cast, Optional
 
 import aiosqlite
 import discord
@@ -19,6 +20,8 @@ cogs = [
 
 
 class Fess(Bot):
+    log_channel: Optional[TextChannel] = None
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -32,6 +35,13 @@ class Fess(Bot):
                         cog, exc
                     )
                 )
+
+    async def on_vote_delete(self, confess: Row):
+        if not self.log_channel:
+            return
+
+        embed = create_embed(confess[1], confess[5], footer=f"Sender: {confess[3]}")
+        await self.log_channel.send("Confession deleted from vote:", embed=embed)
 
     async def on_raw_reaction_add(self, event: RawReactionActionEvent):
         confess = await self.db.fetchone(
@@ -54,10 +64,14 @@ class Fess(Bot):
                 "DELETE FROM confessions WHERE message_id=?",
                 (event.message_id,),
             )
+            await self.on_vote_delete(confess)
 
     async def on_ready(self):
         print("Running!")
         self.target_channel: TextChannel = self.get_channel(config.channel_id)
+        if config.log_channel_id:
+            self.log_channel = self.get_channel(config.log_channel_id)
+
         presence = discord.Game(name="/confess")
         await self.change_presence(activity=presence)
 

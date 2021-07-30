@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from dataclasses_json import DataClassJsonMixin
 
@@ -14,6 +14,7 @@ class Config(DataClassJsonMixin):
     token: str
     guild_id: int
     minimum_vote: int
+    log_channel_id: Optional[int]
 
 
 with open("config.json", "r") as f:
