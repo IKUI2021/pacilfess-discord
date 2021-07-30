@@ -1,15 +1,11 @@
-import json
-from pacilfess_discord.typing import ConfigType
+from pacilfess_discord.config import config
 
 import os
 import sqlite3
 
-with open("config.json", "r") as f:
-    config: ConfigType = json.load(f)
-
 
 def get_db():
-    rv = sqlite3.connect(config["db_path"])
+    rv = sqlite3.connect(config.db_path)
     return rv
 
 
@@ -22,10 +18,10 @@ def migrate_db():
     print("Current version:", current_version)
 
     directory = os.path.dirname(__file__)
-    migrations_path = os.path.join(directory, "migrations/")
+    migrations_path = os.path.join(directory, "migrations")
     migration_files = list(os.listdir(migrations_path))
     for migration in sorted(migration_files):
-        path = "migrations/{0}".format(migration)
+        path = os.path.join(migrations_path, migration)
         migration_version = get_script_version(path)
 
         if migration_version > current_version:
