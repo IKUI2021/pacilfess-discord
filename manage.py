@@ -11,7 +11,7 @@ def get_db():
 
 def migrate_db():
     def get_script_version(path):
-        return int(path.split("_")[0].split("/")[1])
+        return int(os.path.basename(path).split("_")[0])
 
     db = get_db()
     current_version = db.cursor().execute("pragma user_version").fetchone()[0]
