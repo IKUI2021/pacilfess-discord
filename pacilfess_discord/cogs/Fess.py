@@ -70,13 +70,14 @@ class Fess(Cog):
 
         # Save to database for moderation purposes.
         await self.bot.db.execute(
-            "INSERT INTO confessions VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO confessions VALUES (?, ?, ?, ?, ?, ?)",
             (
                 fess_message.id,
                 confession,
                 ctx.author_id,
                 ctx.author.name,
                 current_time.timestamp(),
+                attachment,
             ),
         )
         await ctx.send("Done!", hidden=True)
