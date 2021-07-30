@@ -40,7 +40,11 @@ class Fess(Bot):
         if not self.log_channel:
             return
 
-        embed = create_embed(confess[1], confess[5], footer=f"Sender: {confess[3]}")
+        embed = create_embed(
+            confess["content"],
+            attachment=confess["attachment"],
+            footer=f"Sender: {confess['author']}",
+        )
         await self.log_channel.send("Confession deleted from vote:", embed=embed)
 
     async def on_raw_reaction_add(self, event: RawReactionActionEvent):

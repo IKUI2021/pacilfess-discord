@@ -1,3 +1,4 @@
+from pacilfess_discord.helper.hasher import hash_user
 import aiohttp
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional
@@ -9,6 +10,7 @@ from discord_slash.utils.manage_commands import create_option
 from pacilfess_discord.config import config
 from pacilfess_discord.helper.embed import create_embed
 from pacilfess_discord.helper.regex import DISCORD_RE
+from pacilfess_discord.models import BannedUser, Confess
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess as FessBot
@@ -20,13 +22,11 @@ class Fess(Cog):
 
     async def _check_attachment(self, url: str):
         try:
-            async with aiohttp.ClientSession(
-                raise_for_status=True, timeout=30
-            ) as session:
+            async with aiohttp.ClientSession(raise_for_status=True) as session:
                 async with session.head(url) as resp:
                     resp.raise_for_status()
-                    return resp.headers["content-type"].startswith("image")
-        except:
+                    return resp.headers["Content-Type"].startswith("image")
+        except Exception:
             return False
 
     @cog_ext.cog_slash(
@@ -58,11 +58,12 @@ class Fess(Cog):
 
         # Check if sender is banned or not.
         res = await self.bot.db.fetchone(
-            "SELECT * FROM banned_users WHERE id=?", (ctx.author_id,)
+            BannedUser,
+            "SELECT * FROM banned_users WHERE id=?",
+            parameters=(hash_user(ctx.author),),
         )
         if res:
-            lift_datetime = datetime.fromtimestamp(res[2])
-
+            lift_datetime = res.datetime
             if current_time < lift_datetime:
                 await ctx.send(
                     "You are banned from sending a confession until "
@@ -73,7 +74,8 @@ class Fess(Cog):
             else:
                 # We already get past the lifting time, so remove our entry from DB.
                 await self.bot.db.execute(
-                    "DELETE FROM banned_users WHERE id=?", (ctx.author_id,)
+                    "DELETE FROM banned_users WHERE id=?",
+                    parameters=(hash_user(ctx.author),),
                 )
 
         if attachment and not await self._check_attachment(attachment):
@@ -89,12 +91,11 @@ class Fess(Cog):
 
         # Save to database for moderation purposes.
         await self.bot.db.execute(
-            "INSERT INTO confessions VALUES (?, ?, ?, ?, ?, ?)",
-            (
+            "INSERT INTO confessions VALUES (?, ?, ?, ?, ?)",
+            parameters=(
                 fess_message.id,
                 confession,
-                ctx.author_id,
-                ctx.author.name,
+                hash_user(ctx.author),
                 current_time.timestamp(),
                 attachment,
             ),
@@ -115,7 +116,6 @@ class Fess(Cog):
         ],
     )
     async def _delete_fess(self, ctx: SlashContext, link: Optional[str] = None):
-        # https://discord.com/channels/<GUILD_ID>/<CHANNEL_ID>/<MESSAGE_ID>
         current_time = datetime.now()
         five_mins_ago = current_time - timedelta(minutes=5)
         if link:
@@ -125,21 +125,23 @@ class Fess(Cog):
                 return
 
             confess = await self.bot.db.fetchone(
+                Confess,
                 "SELECT * FROM confessions "
                 + "WHERE author=? AND sendtime>=? AND message_id=? "
                 + "ORDER BY sendtime DESC",
-                (
-                    ctx.author_id,
+                parameters=(
+                    hash_user(ctx.author),
                     five_mins_ago.timestamp(),
                     int(re_result.group("MESSAGE")),
                 ),
             )
         else:
             confess = await self.bot.db.fetchone(
+                Confess,
                 "SELECT * FROM confessions "
                 + "WHERE author=? AND sendtime>=? "
                 + "ORDER BY sendtime DESC",
-                (ctx.author_id, five_mins_ago.timestamp()),
+                parameters=(hash_user(ctx.author), five_mins_ago.timestamp()),
             )
 
         if not confess:
@@ -149,7 +151,7 @@ class Fess(Cog):
             )
             return
 
-        confess_id: int = confess[0]
+        confess_id: int = confess.message_id
         confess_msg = await self.bot.target_channel.fetch_message(confess_id)
         await confess_msg.edit(
             embed=create_embed("*This confession has been deleted by the author.*")
@@ -157,7 +159,7 @@ class Fess(Cog):
 
         await self.bot.db.execute(
             "DELETE FROM confessions WHERE message_id=?",
-            (confess_id,),
+            parameters=(confess_id,),
         )
         await ctx.send("Done!", hidden=True)
 

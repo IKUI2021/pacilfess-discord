@@ -1,17 +1,17 @@
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Match, cast
+from typing import TYPE_CHECKING, Match, cast, Optional
 
 from discord import Member
-import discord
 from discord.ext.commands import Cog
 from discord_slash import SlashContext, cog_ext
 from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_option, generate_permissions
-from prettytable import PrettyTable
 
 from pacilfess_discord.config import config
+from pacilfess_discord.helper.hasher import hash_user
 from pacilfess_discord.helper.embed import create_embed
 from pacilfess_discord.helper.regex import DISCORD_RE, ETA_RE
+from pacilfess_discord.models import Confess, BannedUser
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess
@@ -26,6 +26,37 @@ class Admin(Cog):
     def __init__(self, bot: "Fess"):
         self.bot = bot
 
+    async def _delete_fess(self, ctx: SlashContext, link: str) -> Optional[Confess]:
+        re_result = DISCORD_RE.search(link)
+        if not re_result:
+            await ctx.send("Invalid confession link!", hidden=True)
+            return None
+
+        confess = await self.bot.db.fetchone(
+            Confess,
+            "SELECT * FROM confessions WHERE message_id=?",
+            parameters=(int(re_result.group("MESSAGE")),),
+        )
+
+        if not confess:
+            await ctx.send(
+                "No such confession found.",
+                hidden=True,
+            )
+            return None
+
+        confess_id: int = confess.message_id
+        confess_msg = await self.bot.target_channel.fetch_message(confess_id)
+        await confess_msg.edit(
+            embed=create_embed("*This confession has been deleted by admin.*")
+        )
+
+        await self.bot.db.execute(
+            "DELETE FROM confessions WHERE message_id=?",
+            parameters=(confess_id,),
+        )
+        return confess
+
     @cog_ext.cog_subcommand(
         base="fessmin",
         name="mute",
@@ -33,8 +64,8 @@ class Admin(Cog):
         guild_ids=[config.guild_id],
         options=[
             create_option(
-                name="user",
-                description="User to mute.",
+                name="message",
+                description="Link to message in which the user will be banned.",
                 option_type=SlashCommandOptionType.USER,
                 required=True,
             ),
@@ -48,15 +79,20 @@ class Admin(Cog):
         base_default_permission=False,
         base_permissions={config.guild_id: command_permissions},
     )
-    async def _mute(self, ctx: SlashContext, user: Member, time: str):
+    async def _mute(self, ctx: SlashContext, message: str, time: str):
         eta_re = cast(Match[str], ETA_RE.match(time))
         if not any(eta_re.groups()):
             await ctx.send("Invalid time format.", hidden=True)
             return
 
+        confess = await self._delete_fess(ctx, message)
+        if not confess:
+            return
+
         existing_ban = await self.bot.db.fetchone(
+            BannedUser,
             "SELECT * FROM banned_users WHERE id=?",
-            (user.id,),
+            parameters=(confess.author,),
         )
 
         if existing_ban:
@@ -74,7 +110,7 @@ class Admin(Cog):
 
         await self.bot.db.execute(
             "INSERT INTO banned_users VALUES (?, ?, ?)",
-            (user.id, user.name, lift_datetime.timestamp()),
+            parameters=(confess.author, lift_datetime.timestamp()),
         )
 
         await ctx.send(
@@ -98,15 +134,19 @@ class Admin(Cog):
     )
     async def _unmute(self, ctx: SlashContext, user: Member):
         existing_ban = await self.bot.db.fetchone(
+            BannedUser,
             "SELECT * FROM banned_users WHERE id=?",
-            (user.id,),
+            parameters=(hash_user(user),),
         )
 
         if not existing_ban:
             await ctx.send("User is not muted.", hidden=True)
             return
 
-        await self.bot.db.execute("DELETE FROM banned_users WHERE id=?", (user.id,))
+        await self.bot.db.execute(
+            "DELETE FROM banned_users WHERE id=?",
+            parameters=(hash_user(user),),
+        )
         await ctx.send("User has been unmuted.", hidden=True)
 
     @cog_ext.cog_subcommand(
@@ -124,55 +164,8 @@ class Admin(Cog):
         ],
     )
     async def _delete(self, ctx: SlashContext, link: str):
-        re_result = DISCORD_RE.search(link)
-        if not re_result:
-            await ctx.send("Invalid confession link!", hidden=True)
-            return
-
-        confess = await self.bot.db.fetchone(
-            "SELECT * FROM confessions WHERE message_id=?",
-            (int(re_result.group("MESSAGE")),),
-        )
-
-        if not confess:
-            await ctx.send(
-                "No such confession found.",
-                hidden=True,
-            )
-            return
-
-        confess_id: int = confess[0]
-        confess_msg = await self.bot.target_channel.fetch_message(confess_id)
-        await confess_msg.edit(
-            embed=create_embed("*This confession has been deleted by admin.*")
-        )
-
-        await self.bot.db.execute(
-            "DELETE FROM confessions WHERE message_id=?",
-            (confess_id,),
-        )
-        await ctx.send("Done!", hidden=True)
-
-    @cog_ext.cog_subcommand(
-        base="fessmin",
-        name="mutelist",
-        description="List all muted users.",
-        guild_ids=[config.guild_id],
-    )
-    async def _mutelist(self, ctx: SlashContext):
-        users = await self.bot.db.fetchall("SELECT * FROM banned_users")
-        if users:
-            table = PrettyTable(["Username", "Lift datetime"])
-            for u in users:
-                table.add_row(
-                    [u[1], datetime.fromtimestamp(u[2]).isoformat(" ", "seconds")]
-                )
-            desc = f"```\r\n{table.get_string()}\r\n```"
-        else:
-            desc = "No muted users."
-
-        embed = discord.Embed(title="Muted users", description=desc)
-        await ctx.send(embed=embed, hidden=True)
+        if await self._delete_fess(ctx, link):
+            await ctx.send("Done!", hidden=True)
 
 
 def setup(bot: "Fess"):
