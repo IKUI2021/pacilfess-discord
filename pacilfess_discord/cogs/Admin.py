@@ -66,7 +66,7 @@ class Admin(Cog):
             create_option(
                 name="message",
                 description="Link to message in which the user will be banned.",
-                option_type=SlashCommandOptionType.USER,
+                option_type=SlashCommandOptionType.STRING,
                 required=True,
             ),
             create_option(
