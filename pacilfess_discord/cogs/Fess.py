@@ -1,3 +1,4 @@
+import aiohttp
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional
 
@@ -16,6 +17,17 @@ if TYPE_CHECKING:
 class Fess(Cog):
     def __init__(self, bot: "FessBot"):
         self.bot = bot
+
+    async def _check_attachment(self, url: str):
+        try:
+            async with aiohttp.ClientSession(
+                raise_for_status=True, timeout=30
+            ) as session:
+                async with session.head(url) as resp:
+                    resp.raise_for_status()
+                    return resp.headers["content-type"].startswith("image")
+        except:
+            return False
 
     @cog_ext.cog_slash(
         name="confess",
@@ -63,6 +75,13 @@ class Fess(Cog):
                 await self.bot.db.execute(
                     "DELETE FROM banned_users WHERE id=?", (ctx.author_id,)
                 )
+
+        if attachment and not await self._check_attachment(attachment):
+            await ctx.send(
+                "Invalid attachment given! It can only be image.",
+                hidden=True,
+            )
+            return
 
         embed = create_embed(confession, attachment)
         fess_message = await self.bot.target_channel.send(embed=embed)
