@@ -1,4 +1,4 @@
-from sqlite3 import Row
+from pacilfess_discord.models import Confess
 from typing import cast, Optional
 
 import aiosqlite
@@ -36,21 +36,22 @@ class Fess(Bot):
                     )
                 )
 
-    async def on_vote_delete(self, confess: Row):
+    async def on_vote_delete(self, confess: Confess):
         if not self.log_channel:
             return
 
         embed = create_embed(
-            confess["content"],
-            attachment=confess["attachment"],
-            footer=f"Sender: {confess['author']}",
+            confess.content,
+            attachment=confess.attachment,
+            footer=f"Sender: {confess.author}",
         )
         await self.log_channel.send("Confession deleted from vote:", embed=embed)
 
     async def on_raw_reaction_add(self, event: RawReactionActionEvent):
         confess = await self.db.fetchone(
+            Confess,
             "SELECT * FROM confessions WHERE message_id=?",
-            (event.message_id,),
+            parameters=(event.message_id,),
         )
         if not confess:
             return
@@ -66,7 +67,7 @@ class Fess(Bot):
             )
             await self.db.execute(
                 "DELETE FROM confessions WHERE message_id=?",
-                (event.message_id,),
+                parameters=(event.message_id,),
             )
             await self.on_vote_delete(confess)
 
