@@ -10,7 +10,7 @@ from discord_slash.utils.manage_commands import create_option
 from pacilfess_discord.config import config
 from pacilfess_discord.helper.embed import create_embed
 from pacilfess_discord.helper.regex import DISCORD_RE
-from pacilfess_discord.models import BannedUser, Confess
+from pacilfess_discord.models import Confess
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess as FessBot
@@ -57,26 +57,14 @@ class Fess(Cog):
         current_time = datetime.now()
 
         # Check if sender is banned or not.
-        res = await self.bot.db.fetchone(
-            BannedUser,
-            "SELECT * FROM banned_users WHERE id=?",
-            parameters=(hash_user(ctx.author),),
-        )
-        if res:
-            lift_datetime = res.datetime
-            if current_time < lift_datetime:
-                await ctx.send(
-                    "You are banned from sending a confession until "
-                    + f"`{lift_datetime.isoformat(' ', 'seconds')}`.",
-                    hidden=True,
-                )
-                return
-            else:
-                # We already get past the lifting time, so remove our entry from DB.
-                await self.bot.db.execute(
-                    "DELETE FROM banned_users WHERE id=?",
-                    parameters=(hash_user(ctx.author),),
-                )
+        banned_data = await self.bot.db.check_banned(ctx.author)
+        if banned_data:
+            await ctx.send(
+                "You are banned from sending a confession until "
+                + f"`{banned_data.datetime.isoformat(' ', 'seconds')}`.",
+                hidden=True,
+            )
+            return
 
         if attachment and not await self._check_attachment(attachment):
             await ctx.send(
@@ -91,7 +79,7 @@ class Fess(Cog):
 
         # Save to database for moderation purposes.
         await self.bot.db.execute(
-            "INSERT INTO confessions VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO confessions(message_id, content, author, sendtime, attachment) VALUES (?, ?, ?, ?, ?)",
             parameters=(
                 fess_message.id,
                 confession,

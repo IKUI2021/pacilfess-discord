@@ -25,4 +25,15 @@ class BannedUser(DataClassJsonMixin):
 
     @property
     def datetime(self):
-        return datetime.fromtimestamp(self.sendtime)
+        return datetime.fromtimestamp(self.timeout)
+
+
+@dataclass
+class Violation(DataClassJsonMixin):
+    user_hash: str
+    severity: int
+    timestamp: int
+
+    @property
+    def datetime(self):
+        return datetime.fromtimestamp(self.timestamp)

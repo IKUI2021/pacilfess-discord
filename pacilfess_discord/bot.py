@@ -1,5 +1,7 @@
-from pacilfess_discord.models import Confess
-from typing import cast, Optional
+from datetime import datetime, timedelta
+from pacilfess_discord.helper.hasher import hash_user
+from pacilfess_discord.models import Confess, Violation
+from typing import Union, cast, Optional
 
 import aiosqlite
 import discord
@@ -46,6 +48,37 @@ class Fess(Bot):
             footer=f"Sender: {confess.author}",
         )
         await self.log_channel.send("Confession deleted from vote:", embed=embed)
+
+    async def on_sev_change(self, user: Union[discord.Member, str]):
+        current_time = datetime.now()
+        month_ago = current_time - timedelta(weeks=4)
+
+        if isinstance(user, str):
+            user_hash = user
+        else:
+            user_hash = hash_user(user)
+
+        # Remove existing ban just to be safe.
+        existing_ban = await self.db.check_banned(user_hash)
+        if existing_ban:
+            await self.db.execute(
+                "DELETE FROM banned_users WHERE id=?",
+                parameters=(user_hash,),
+            )
+
+        violations = await self.db.fetchall(
+            Violation,
+            "SELECT * FROM violations WHERE user_hash=? AND timestamp>=?",
+            parameters=(user_hash, month_ago.timestamp()),
+        )
+        total_violations = sum([x.severity for x in violations])
+        minutes = total_violations ** 2 * 30
+
+        end_dt = current_time + timedelta(minutes=minutes)
+        await self.db.execute(
+            "INSERT INTO banned_users(id, timeout) VALUES (?, ?)",
+            parameters=(user_hash, end_dt.timestamp()),
+        )
 
     async def on_raw_reaction_add(self, event: RawReactionActionEvent):
         confess = await self.db.fetchone(
