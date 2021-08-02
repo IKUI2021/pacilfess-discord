@@ -5,14 +5,17 @@ from discord import Member
 from discord.ext.commands import Cog
 from discord_slash import SlashContext, cog_ext
 from discord_slash.model import SlashCommandOptionType
-from discord_slash.utils.manage_commands import (create_choice, create_option,
-                                                 generate_permissions)
+from discord_slash.utils.manage_commands import (
+    create_choice,
+    create_option,
+    generate_permissions,
+)
 
 from pacilfess_discord.config import config
 from pacilfess_discord.helper.embed import create_embed
-from pacilfess_discord.helper.hasher import hash_user
+from pacilfess_discord.helper.hasher import decrypt_data, hash_user
 from pacilfess_discord.helper.regex import DISCORD_RE
-from pacilfess_discord.models import Confess
+from pacilfess_discord.models import Confess, DeletedData
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess
@@ -71,7 +74,7 @@ class Admin(Cog):
     @cog_ext.cog_subcommand(
         base="fessmin",
         name="mute",
-        description="Temporarily mute/ban a user for a specific time.",
+        description="Temporarily mute/ban a user from message for a specific time.",
         guild_ids=[config.guild_id],
         options=[
             create_option(
@@ -101,6 +104,45 @@ class Admin(Cog):
             ),
         )
         await self.bot.on_sev_change(confess.author)
+        await ctx.send("User has been muted.", hidden=True)
+
+    @cog_ext.cog_subcommand(
+        base="fessmin",
+        name="muteid",
+        description="Temporarily mute/ban a user from ID for a specific time.",
+        guild_ids=[config.guild_id],
+        options=[
+            create_option(
+                name="id",
+                description="The deleted message ID.",
+                option_type=SlashCommandOptionType.STRING,
+                required=True,
+            ),
+            severity_option,
+        ],
+        base_default_permission=False,
+        base_permissions={config.guild_id: command_permissions},
+    )
+    async def _muteid(self, ctx: SlashContext, id: str, severity: int):
+        current_time = datetime.now()
+        try:
+            deleted_data = decrypt_data(id, DeletedData)
+        except Exception:
+            await ctx.send(
+                "An error occured, are you sure you're sending the right ID?",
+                hidden=True,
+            )
+            return
+
+        await self.bot.db.execute(
+            "INSERT INTO violations(user_hash, severity, timestamp) VALUES (?, ?, ?)",
+            parameters=(
+                deleted_data.uid,
+                severity,
+                current_time.timestamp(),
+            ),
+        )
+        await self.bot.on_sev_change(deleted_data.uid)
         await ctx.send("User has been muted.", hidden=True)
 
     @cog_ext.cog_subcommand(
