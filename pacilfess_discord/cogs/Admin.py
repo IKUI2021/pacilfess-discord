@@ -5,15 +5,12 @@ from discord import Member
 from discord.ext.commands import Cog
 from discord_slash import SlashContext, cog_ext
 from discord_slash.model import SlashCommandOptionType
-from discord_slash.utils.manage_commands import (
-    create_choice,
-    create_option,
-    generate_permissions,
-)
+from discord_slash.utils.manage_commands import (create_choice, create_option,
+                                                 generate_permissions)
 
 from pacilfess_discord.config import config
-from pacilfess_discord.helper.hasher import hash_user
 from pacilfess_discord.helper.embed import create_embed
+from pacilfess_discord.helper.hasher import hash_user
 from pacilfess_discord.helper.regex import DISCORD_RE
 from pacilfess_discord.models import Confess
 

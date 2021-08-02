@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import Iterable, TypeVar, Type, Optional, Union
-
-from dataclasses_json import DataClassJsonMixin
+from typing import Iterable, Optional, Type, TypeVar, Union
 
 import aiosqlite
 import discord
-from pacilfess_discord.models import BannedUser
+from dataclasses_json import DataClassJsonMixin
+
 from pacilfess_discord.helper.hasher import hash_user
+from pacilfess_discord.models import BannedUser
 
 T = TypeVar("T", bound=DataClassJsonMixin)
 

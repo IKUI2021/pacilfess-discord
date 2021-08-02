@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
-from pacilfess_discord.helper.hasher import hash_user
-from pacilfess_discord.models import Confess, Violation
-from typing import Union, cast, Optional
+from typing import Optional, Union, cast
 
 import aiosqlite
 import discord
@@ -14,6 +12,8 @@ from discord_slash import SlashCommand
 from pacilfess_discord.config import config
 from pacilfess_discord.helper.db import DBHelper
 from pacilfess_discord.helper.embed import create_embed
+from pacilfess_discord.helper.hasher import enc_data, hash_user
+from pacilfess_discord.models import Confess, DeletedData, Violation
 
 cogs = [
     "pacilfess_discord.cogs.Fess",
@@ -42,10 +42,12 @@ class Fess(Bot):
         if not self.log_channel:
             return
 
+        deleted_data = DeletedData(uid=confess.author, mid=confess.message_id)
+        encrypted = enc_data(deleted_data)
         embed = create_embed(
-            confess.content,
+            confess.content + f"\r\n\r\nID: `${encrypted.decode('UTF-8')}`",
             attachment=confess.attachment,
-            footer=f"Sender: {confess.author}",
+            footer="To ban this user, use /fessmin muteid <ID>",
         )
         await self.log_channel.send("Confession deleted from vote:", embed=embed)
 

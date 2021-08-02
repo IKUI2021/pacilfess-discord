@@ -1,5 +1,5 @@
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
 
 from dataclasses_json import DataClassJsonMixin
@@ -37,3 +37,9 @@ class Violation(DataClassJsonMixin):
     @property
     def datetime(self):
         return datetime.fromtimestamp(self.timestamp)
+
+
+@dataclass
+class DeletedData(DataClassJsonMixin):
+    uid: str
+    mid: int

@@ -8,7 +8,7 @@ def create_embed(
     attachment: Optional[str] = None,
     footer: Optional[str] = None,
 ):
-    confession_content = "> " + confession
+    confession_content = "> " + "\r\n> ".join(confession.splitlines()).strip()
     embed = Embed(
         title="Anonymous confession",
         description=confession_content,
