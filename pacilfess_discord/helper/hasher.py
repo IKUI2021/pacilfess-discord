@@ -1,7 +1,7 @@
 import random
 from base64 import b64decode, b64encode
 from hashlib import sha256
-from typing import Type, cast
+from typing import Type, TypeVar, cast
 
 import discord
 from Crypto.Cipher import Salsa20
@@ -9,6 +9,8 @@ from Crypto.Protocol.KDF import scrypt
 from dataclasses_json.api import DataClassJsonMixin
 
 from pacilfess_discord.config import config
+
+T = TypeVar("T", bound=DataClassJsonMixin)
 
 random.seed("pacilfess-dc")
 salt = random.randbytes(32)
@@ -28,7 +30,7 @@ def enc_data(obj: DataClassJsonMixin):
     return b64encode(bytes(output_data))
 
 
-def decrypt_data(enc: str, cls: Type[DataClassJsonMixin]):
+def decrypt_data(enc: str, cls: Type[T]) -> T:
     decoded_data = b64decode(enc)
 
     cipher = Salsa20.new(key, nonce=decoded_data[:8])
