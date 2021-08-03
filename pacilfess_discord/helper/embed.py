@@ -1,18 +1,26 @@
 from typing import Optional
 
-from discord import Embed
+from discord import Embed, Colour
 
 
 def create_embed(
     confession: str,
     attachment: Optional[str] = None,
     footer: Optional[str] = None,
+    use_quote: bool = True,
 ):
-    confession_content = "> " + "\r\n> ".join(confession.splitlines()).strip()
+    if use_quote:
+        confession_content = "> " + "\r\n> ".join(confession.splitlines()).strip()
+    else:
+        confession_content = confession
+
+    color = Colour.random() if use_quote else Colour.red()
     embed = Embed(
         title="Anonymous confession",
         description=confession_content,
+        color=color,
     )
+
     if attachment:
         embed.set_image(url=attachment)
 
