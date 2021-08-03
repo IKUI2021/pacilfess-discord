@@ -62,7 +62,10 @@ class Admin(Cog):
         confess_id: int = confess.message_id
         confess_msg = await self.bot.target_channel.fetch_message(confess_id)
         await confess_msg.edit(
-            embed=create_embed("*This confession has been deleted by admin.*")
+            embed=create_embed(
+                "*This confession has been deleted by admin.*",
+                use_quote=False,
+            )
         )
 
         await self.bot.db.execute(

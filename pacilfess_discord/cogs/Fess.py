@@ -142,7 +142,10 @@ class Fess(Cog):
         confess_id: int = confess.message_id
         confess_msg = await self.bot.target_channel.fetch_message(confess_id)
         await confess_msg.edit(
-            embed=create_embed("*This confession has been deleted by the author.*")
+            embed=create_embed(
+                "*This confession has been deleted by the author.*",
+                use_quote=False,
+            )
         )
 
         await self.bot.db.execute(

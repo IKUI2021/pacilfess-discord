@@ -98,7 +98,10 @@ class Fess(Bot):
         reaction = cast(Reaction, discord.utils.get(message.reactions, emoji="❌"))
         if event.emoji.name == "❌" and reaction.count > config.minimum_vote:
             await message.edit(
-                embed=create_embed("*This confession has been deleted by vote.*")
+                embed=create_embed(
+                    "*This confession has been deleted by vote.*",
+                    use_quote=False,
+                )
             )
             await self.db.execute(
                 "DELETE FROM confessions WHERE message_id=?",
