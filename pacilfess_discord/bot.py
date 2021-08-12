@@ -116,7 +116,7 @@ class Fess(Bot):
 
         server_conf = await ServerConfig.objects.get(server_id=event.guild_id)
         confession_channel: TextChannel = cast(
-            TextChannel, self.get_channel(cast(int, server_conf.confession_channel))
+            TextChannel, self.get_channel(event.channel_id)
         )
         message = await confession_channel.fetch_message(event.message_id)
 

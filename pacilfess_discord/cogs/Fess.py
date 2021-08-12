@@ -7,12 +7,11 @@ from discord.ext.commands import Cog
 from discord_slash import SlashContext, cog_ext
 from discord_slash.utils.manage_commands import create_option
 
-from pacilfess_discord.config import config
 from pacilfess_discord.helper.embed import create_embed
 from pacilfess_discord.helper.hasher import hash_user
 from pacilfess_discord.helper.regex import DISCORD_RE
 from pacilfess_discord.helper.utils import check_banned
-from pacilfess_discord.models import BannedUser, Confess, ServerConfig
+from pacilfess_discord.models import Confess, ServerConfig
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess as FessBot
@@ -87,9 +86,15 @@ class Fess(Cog):
                 hidden=True,
             )
 
-        target_channel: TextChannel = cast(
-            TextChannel, self.bot.get_channel(server_conf.confession_channel)
+        target_channel = cast(
+            Optional[TextChannel], self.bot.get_channel(server_conf.confession_channel)
         )
+        if not target_channel:
+            return await ctx.send(
+                "Cannot seem to find confession channel. Maybe it was deleted?",
+                hidden=True,
+            )
+
         fess_message = await target_channel.send(embed=embed)
         await fess_message.add_reaction("❌")
 
@@ -160,9 +165,14 @@ class Fess(Cog):
                 hidden=True,
             )
 
-        confession_channel: TextChannel = cast(
-            TextChannel, self.bot.get_channel(server_conf.confession_channel)
+        confession_channel = cast(
+            Optional[TextChannel], self.bot.get_channel(server_conf.confession_channel)
         )
+        if not confession_channel:
+            return await ctx.send(
+                "Cannot seem to find confession channel. Maybe it was deleted?",
+                hidden=True,
+            )
 
         confess_id: int = confess.message_id
         confess_msg = await confession_channel.fetch_message(confess_id)

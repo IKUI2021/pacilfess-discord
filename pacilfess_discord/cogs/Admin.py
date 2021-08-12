@@ -5,16 +5,13 @@ from discord import Member, TextChannel
 from discord.ext.commands import Cog
 from discord_slash import SlashContext, cog_ext
 from discord_slash.model import SlashCommandOptionType
-from discord_slash.utils.manage_commands import (create_choice, create_option,
-                                                 generate_permissions)
+from discord_slash.utils.manage_commands import create_choice, create_option
 
-from pacilfess_discord.config import config
 from pacilfess_discord.helper.embed import create_embed
 from pacilfess_discord.helper.hasher import decrypt_data, hash_user
 from pacilfess_discord.helper.regex import DISCORD_RE
 from pacilfess_discord.helper.utils import check_banned
-from pacilfess_discord.models import (Confess, DeletedData, ServerConfig,
-                                      Violation)
+from pacilfess_discord.models import Confess, DeletedData, ServerConfig, Violation
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess
@@ -58,9 +55,14 @@ class Admin(Cog):
                 hidden=True,
             )
 
-        confession_channel: TextChannel = cast(
-            TextChannel, self.bot.get_channel(server_conf.confession_channel)
+        confession_channel = cast(
+            Optional[TextChannel], self.bot.get_channel(server_conf.confession_channel)
         )
+        if not confession_channel:
+            return await ctx.send(
+                "Cannot seem to find confession channel. Maybe it was deleted?",
+                hidden=True,
+            )
 
         confess_id: int = confess.message_id
         confess_msg = await confession_channel.fetch_message(confess_id)
