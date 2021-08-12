@@ -12,6 +12,8 @@ aiosqlite = "^0.17.0"
 dataclasses-json = "^0.5.4"
 prettytable = "^2.1.0"
 pycryptodome = "^3.10.1"
+ormar = "^0.10.16"
+alembic = "^1.6.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

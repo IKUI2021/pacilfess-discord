@@ -1,6 +1,6 @@
 from typing import Optional
 
-from discord import Embed, Colour
+from discord import Colour, Embed
 
 
 def create_embed(

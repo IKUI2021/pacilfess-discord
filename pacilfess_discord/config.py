@@ -8,14 +8,13 @@ from dataclasses_json import DataClassJsonMixin
 @dataclass
 class Config(DataClassJsonMixin):
     db_path: str
-    admins: List[int]
-    admin_roles: List[int]
-    channel_id: int
     token: str
-    guild_id: int
-    minimum_vote: int
-    log_channel_id: Optional[int]
+    default_vote: int
     secret: str
+
+    @property
+    def db_url(self):
+        return f"sqlite:///{self.db_path}"
 
 
 with open("config.json", "r") as f:

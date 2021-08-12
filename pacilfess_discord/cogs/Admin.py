@@ -1,29 +1,23 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, cast
 
-from discord import Member
+from discord import Member, TextChannel
 from discord.ext.commands import Cog
 from discord_slash import SlashContext, cog_ext
 from discord_slash.model import SlashCommandOptionType
-from discord_slash.utils.manage_commands import (
-    create_choice,
-    create_option,
-    generate_permissions,
-)
+from discord_slash.utils.manage_commands import (create_choice, create_option,
+                                                 generate_permissions)
 
 from pacilfess_discord.config import config
 from pacilfess_discord.helper.embed import create_embed
 from pacilfess_discord.helper.hasher import decrypt_data, hash_user
 from pacilfess_discord.helper.regex import DISCORD_RE
-from pacilfess_discord.models import Confess, DeletedData
+from pacilfess_discord.helper.utils import check_banned
+from pacilfess_discord.models import (Confess, DeletedData, ServerConfig,
+                                      Violation)
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess
-
-command_permissions = generate_permissions(
-    allowed_roles=config.admin_roles,
-    allowed_users=config.admins,
-)
 
 severity_option = create_option(
     name="severity",
@@ -46,10 +40,8 @@ class Admin(Cog):
             await ctx.send("Invalid confession link!", hidden=True)
             return None
 
-        confess = await self.bot.db.fetchone(
-            Confess,
-            "SELECT * FROM confessions WHERE message_id=?",
-            parameters=(int(re_result.group("MESSAGE")),),
+        confess = await Confess.objects.get_or_none(
+            message_id=int(re_result.group("MESSAGE")), server_id=ctx.guild_id
         )
 
         if not confess:
@@ -59,8 +51,19 @@ class Admin(Cog):
             )
             return None
 
+        server_conf = await ServerConfig.objects.get_or_create(server_id=ctx.guild_id)
+        if not server_conf.confession_channel:
+            return await ctx.send(
+                "This server has not been configured. Please contact the server admin.",
+                hidden=True,
+            )
+
+        confession_channel: TextChannel = cast(
+            TextChannel, self.bot.get_channel(server_conf.confession_channel)
+        )
+
         confess_id: int = confess.message_id
-        confess_msg = await self.bot.target_channel.fetch_message(confess_id)
+        confess_msg = await confession_channel.fetch_message(confess_id)
         await confess_msg.edit(
             embed=create_embed(
                 "*This confession has been deleted by admin.*",
@@ -68,17 +71,13 @@ class Admin(Cog):
             )
         )
 
-        await self.bot.db.execute(
-            "DELETE FROM confessions WHERE message_id=?",
-            parameters=(confess_id,),
-        )
+        await confess.delete()
         return confess
 
     @cog_ext.cog_subcommand(
         base="fessmin",
         name="mute",
         description="Temporarily mute/ban a user from message for a specific time.",
-        guild_ids=[config.guild_id],
         options=[
             create_option(
                 name="message",
@@ -88,32 +87,30 @@ class Admin(Cog):
             ),
             severity_option,
         ],
-        base_default_permission=False,
-        base_permissions={config.guild_id: command_permissions},
     )
     async def _mute(self, ctx: SlashContext, message: str, severity: int):
+        if not ctx.guild_id:
+            return await ctx.send("Cannot do this outside server.", hidden=True)
+
         current_time = datetime.now()
         confess = await self._delete_fess(ctx, message)
         if not confess:
             await ctx.send("Confess cannot be found, aborting.", hidden=True)
             return
 
-        await self.bot.db.execute(
-            "INSERT INTO violations(user_hash, severity, timestamp) VALUES (?, ?, ?)",
-            parameters=(
-                confess.author,
-                severity,
-                current_time.timestamp(),
-            ),
+        await Violation.objects.create(
+            user_id=confess.user_id,
+            server_id=confess.server_id,
+            severity=severity,
+            timestamp=current_time.timestamp(),
         )
-        await self.bot.on_sev_change(confess.author)
+        await self.bot.on_sev_change(confess.user_id, confess.server_id)
         await ctx.send("User has been muted.", hidden=True)
 
     @cog_ext.cog_subcommand(
         base="fessmin",
         name="muteid",
         description="Temporarily mute/ban a user from ID for a specific time.",
-        guild_ids=[config.guild_id],
         options=[
             create_option(
                 name="id",
@@ -123,10 +120,11 @@ class Admin(Cog):
             ),
             severity_option,
         ],
-        base_default_permission=False,
-        base_permissions={config.guild_id: command_permissions},
     )
     async def _muteid(self, ctx: SlashContext, id: str, severity: int):
+        if not ctx.guild_id:
+            return await ctx.send("Cannot do this outside server.", hidden=True)
+
         current_time = datetime.now()
         try:
             deleted_data = decrypt_data(id, DeletedData)
@@ -137,22 +135,19 @@ class Admin(Cog):
             )
             return
 
-        await self.bot.db.execute(
-            "INSERT INTO violations(user_hash, severity, timestamp) VALUES (?, ?, ?)",
-            parameters=(
-                deleted_data.uid,
-                severity,
-                current_time.timestamp(),
-            ),
+        await Violation.objects.create(
+            user_id=deleted_data.uid,
+            server_id=deleted_data.sid,
+            severity=severity,
+            timestamp=current_time.timestamp(),
         )
-        await self.bot.on_sev_change(deleted_data.uid)
+        await self.bot.on_sev_change(deleted_data.uid, deleted_data.sid)
         await ctx.send("User has been muted.", hidden=True)
 
     @cog_ext.cog_subcommand(
         base="fessmin",
         name="unmute",
         description="Unmutes a user.",
-        guild_ids=[config.guild_id],
         options=[
             create_option(
                 name="user",
@@ -163,22 +158,21 @@ class Admin(Cog):
         ],
     )
     async def _unmute(self, ctx: SlashContext, user: Member):
-        existing_ban = await self.bot.db.check_banned(user)
+        if not ctx.guild_id:
+            return await ctx.send("Cannot do this outside server.", hidden=True)
+
+        existing_ban = await check_banned(hash_user(user), ctx.guild_id)
         if not existing_ban:
             await ctx.send("User is not muted.", hidden=True)
             return
 
-        await self.bot.db.execute(
-            "DELETE FROM banned_users WHERE id=?",
-            parameters=(hash_user(user),),
-        )
+        await existing_ban.delete()
         await ctx.send("User has been unmuted.", hidden=True)
 
     @cog_ext.cog_subcommand(
         base="fessmin",
         name="delete",
         description="Deletes a confess.",
-        guild_ids=[config.guild_id],
         options=[
             create_option(
                 name="link",

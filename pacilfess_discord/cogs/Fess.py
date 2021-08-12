@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, cast
 
 import aiohttp
+from discord.channel import TextChannel
 from discord.ext.commands import Cog
 from discord_slash import SlashContext, cog_ext
 from discord_slash.utils.manage_commands import create_option
@@ -10,7 +11,8 @@ from pacilfess_discord.config import config
 from pacilfess_discord.helper.embed import create_embed
 from pacilfess_discord.helper.hasher import hash_user
 from pacilfess_discord.helper.regex import DISCORD_RE
-from pacilfess_discord.models import Confess
+from pacilfess_discord.helper.utils import check_banned
+from pacilfess_discord.models import BannedUser, Confess, ServerConfig
 
 if TYPE_CHECKING:
     from pacilfess_discord.bot import Fess as FessBot
@@ -32,7 +34,6 @@ class Fess(Cog):
     @cog_ext.cog_slash(
         name="confess",
         description="Submits a confession.",
-        guild_ids=[config.guild_id],
         options=[
             create_option(
                 name="confession",
@@ -54,10 +55,14 @@ class Fess(Cog):
         confession: str,
         attachment: Optional[str] = None,
     ):
+        if not ctx.guild_id:
+            return await ctx.send("Cannot do this outside server.", hidden=True)
+
         current_time = datetime.now()
+        user_hash = hash_user(ctx.author)
 
         # Check if sender is banned or not.
-        banned_data = await self.bot.db.check_banned(ctx.author)
+        banned_data = await check_banned(user_hash, ctx.guild_id)
         if banned_data:
             await ctx.send(
                 "You are banned from sending a confession until "
@@ -74,26 +79,34 @@ class Fess(Cog):
             return
 
         embed = create_embed(confession, attachment)
-        fess_message = await self.bot.target_channel.send(embed=embed)
+
+        server_conf = await ServerConfig.objects.get_or_create(server_id=ctx.guild_id)
+        if not server_conf.confession_channel:
+            return await ctx.send(
+                "This server has not been configured. Please contact the server admin.",
+                hidden=True,
+            )
+
+        target_channel: TextChannel = cast(
+            TextChannel, self.bot.get_channel(server_conf.confession_channel)
+        )
+        fess_message = await target_channel.send(embed=embed)
         await fess_message.add_reaction("❌")
 
         # Save to database for moderation purposes.
-        await self.bot.db.execute(
-            "INSERT INTO confessions(message_id, content, author, sendtime, attachment) VALUES (?, ?, ?, ?, ?)",
-            parameters=(
-                fess_message.id,
-                confession,
-                hash_user(ctx.author),
-                current_time.timestamp(),
-                attachment,
-            ),
+        await Confess.objects.create(
+            server_id=ctx.guild_id,
+            message_id=fess_message.id,
+            user_id=user_hash,
+            content=confession,
+            sendtime=current_time.timestamp(),
+            attachment=attachment,
         )
         await ctx.send("Done!", hidden=True)
 
     @cog_ext.cog_slash(
         name="delete",
         description="Deletes a confession.",
-        guild_ids=[config.guild_id],
         options=[
             create_option(
                 name="link",
@@ -104,7 +117,11 @@ class Fess(Cog):
         ],
     )
     async def _delete_fess(self, ctx: SlashContext, link: Optional[str] = None):
+        if not ctx.guild_id:
+            return await ctx.send("Cannot do this outside server.", hidden=True)
+
         current_time = datetime.now()
+        user_hash = hash_user(ctx.author)
         five_mins_ago = current_time - timedelta(minutes=5)
         if link:
             re_result = DISCORD_RE.search(link)
@@ -112,24 +129,21 @@ class Fess(Cog):
                 await ctx.send("Invalid confession link!", hidden=True)
                 return
 
-            confess = await self.bot.db.fetchone(
-                Confess,
-                "SELECT * FROM confessions "
-                + "WHERE author=? AND sendtime>=? AND message_id=? "
-                + "ORDER BY sendtime DESC",
-                parameters=(
-                    hash_user(ctx.author),
-                    five_mins_ago.timestamp(),
-                    int(re_result.group("MESSAGE")),
-                ),
+            confess = await Confess.objects.order_by("-sendtime").get_or_none(
+                server_id=ctx.guild_id,
+                message_id=int(re_result.group("MESSAGE")),
+                user_id=user_hash,
+                sendtime__gt=five_mins_ago.timestamp(),
             )
         else:
-            confess = await self.bot.db.fetchone(
-                Confess,
-                "SELECT * FROM confessions "
-                + "WHERE author=? AND sendtime>=? "
-                + "ORDER BY sendtime DESC",
-                parameters=(hash_user(ctx.author), five_mins_ago.timestamp()),
+            confess = (
+                await Confess.objects.order_by("-sendtime")
+                .limit(1)
+                .get_or_none(
+                    server_id=ctx.guild_id,
+                    user_id=user_hash,
+                    sendtime__gt=five_mins_ago.timestamp(),
+                )
             )
 
         if not confess:
@@ -139,8 +153,19 @@ class Fess(Cog):
             )
             return
 
+        server_conf = await ServerConfig.objects.get_or_create(server_id=ctx.guild_id)
+        if not server_conf.confession_channel:
+            return await ctx.send(
+                "This server has not been configured. Please contact the server admin.",
+                hidden=True,
+            )
+
+        confession_channel: TextChannel = cast(
+            TextChannel, self.bot.get_channel(server_conf.confession_channel)
+        )
+
         confess_id: int = confess.message_id
-        confess_msg = await self.bot.target_channel.fetch_message(confess_id)
+        confess_msg = await confession_channel.fetch_message(confess_id)
         await confess_msg.edit(
             embed=create_embed(
                 "*This confession has been deleted by the author.*",
@@ -148,10 +173,7 @@ class Fess(Cog):
             )
         )
 
-        await self.bot.db.execute(
-            "DELETE FROM confessions WHERE message_id=?",
-            parameters=(confess_id,),
-        )
+        await confess.delete()
         await ctx.send("Done!", hidden=True)
 
 
