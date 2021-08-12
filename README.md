@@ -16,15 +16,15 @@ It works with Discord's slash command! `/confess` is how you use it. Do not worr
 
 Parameters surrounded with `<>` are required, while those surrounded with `[]` are optional.
 
-- `/confess <message> [attachment]`: Sends a message anonymously. (optionally, with attachment)  
-  **Attachment must be a URL to an image file.**
-- `/delete [message]`: Removes the last fess message you owned. If `message` is supplied with the fess' message URL, then that fess will be deleted instead of the last one.  
-  **Only messages earlier than 5 minutes can be removed.** Else, you might want to contact the bot's admin or moderator.
-- `/fessmin`: Admin commands.
-  - `delete <link>`: Removes the linked fess message. This does **NOT** mute the user.
-  - `mute <message> <severity>`: Removes the linked fess message, strikes the user with the specified severity, and mutes the user.
-  - `muteid <id> <severity>`: Mutes the user from the identifier with the specified severity.
-  - `unmute <user>`: Unmutes the user.
+-   `/confess <message> [attachment]`: Sends a message anonymously. (optionally, with attachment)  
+    **Attachment must be a URL to an image file.**
+-   `/delete [message]`: Removes the last fess message you owned. If `message` is supplied with the fess' message URL, then that fess will be deleted instead of the last one.  
+    **Only messages earlier than 5 minutes can be removed.** Else, you might want to contact the bot's admin or moderator.
+-   `/fessmin`: Admin commands.
+    -   `delete <link>`: Removes the linked fess message. This does **NOT** mute the user.
+    -   `mute <message> <severity>`: Removes the linked fess message, strikes the user with the specified severity, and mutes the user.
+    -   `muteid <id> <severity>`: Mutes the user from the identifier with the specified severity.
+    -   `unmute <user>`: Unmutes the user.
 
 ## Is this truly anonymous?
 
@@ -40,11 +40,11 @@ _This section is technical._
 
 When a user sends a fess command, it will first check if the user is muted or not. If not, then we will insert the following to the database after we send the message to the predefined channel:
 
-- Message content
-- Attachment
-- Sender's hashed UID
-- Timestamp
-- Message ID of the SENT channel (not the command)
+-   Message content
+-   Attachment
+-   Sender's hashed UID
+-   Timestamp
+-   Message ID of the SENT channel (not the command)
 
 The message is then reacted with an :x: for the use of vote deletion.
 
@@ -64,23 +64,23 @@ If you are an admin, you may run a delete command with the message's url as para
 
 When a fess is send to the channel, the bot will react with :x: to initiate vote deletion. If the vote count is above the threshold set in config, it will delete the message and LOG it to a channel (if defined in config). The logged datas are the following:
 
-- The message's content in plain text.
-- The sender's hashed UID and message ID encrypted. [See how it is being encrypted below](#encryption).
+-   The message's content in plain text.
+-   The sender's hashed UID and message ID encrypted. [See how it is being encrypted below](#encryption).
 
 ### Muted user
 
 A user can be muted due to breaking the rules. It can only be done by the admin, this can be achieved by a few methods:
 
-- By mentioning the user
-- By giving the message's url as parameter  
-  This will also trigger the message deletion routine.
-- By giving the logged data unique identifier  
-  This function requires the vote deletion logging to be enabled.
+-   By mentioning the user
+-   By giving the message's url as parameter  
+    This will also trigger the message deletion routine.
+-   By giving the logged data unique identifier  
+    This function requires the vote deletion logging to be enabled.
 
 A user will be striked depends on the severity, and is logged to the database. Whenever a mute routine is triggered, the bot will calculate the time of cooldown in the following order:
 
-- Count all the severity in the last 3 months
-- The cooldown time will be `severityTotal^2 / 2` hours.
+-   Count all the severity in the last 3 months
+-   The cooldown time will be `severityTotal^2 / 2` hours.
 
 ## Severity
 
@@ -98,26 +98,30 @@ To decrypt, we simply do the reverse. Base64 decode, then decrypt with Salsa20.
 
 ## Installing
 
-- Install [Poetry](https://python-poetry.org/).
-- Run `poetry install`.
-- Create a new `config.json` file with the following format.
+-   Install [Poetry](https://python-poetry.org/).
+-   Run `poetry install`.
+-   Create a new `config.json` file with the following format.
 
 ```json
 {
-  "db_path": "data.db",
-  "admins": [],
-  "admin_roles": [],
-  "channel_id": 00000000000000,
-  "guild_id": 00000000000000,
-  "minimum_vote": 5,
-  "token": "",
-  "log_channel_id": 00000000000000
+    "db_path": "data.db",
+    "admins": [],
+    "admin_roles": [],
+    "channel_id": 00000000000000,
+    "guild_id": 00000000000000,
+    "minimum_vote": 5,
+    "token": "",
+    "log_channel_id": 00000000000000
 }
 ```
 
-- Fill in `admins` with list of Discord user IDs, and `channel_id` with the target channel ID.
-- Create an empty file, and run `database.sql` to that database.
+-   Fill in `admins` with list of Discord user IDs, and `channel_id` with the target channel ID.
+-   Create an empty file, and run `database.sql` to that database.
 
 ## Running
 
-- Run `poetry run run.py`.
+-   Run `poetry run run.py`.
+
+## TODO
+
+-   Add checks on `/fessmin`
