@@ -1,9 +1,8 @@
 import sys
 import traceback
 from datetime import datetime, timedelta
-from typing import Optional, Union, cast
+from typing import Union, cast, Optional
 
-import aiosqlite
 import discord
 from discord.channel import TextChannel
 from discord.ext import commands
@@ -33,8 +32,6 @@ cogs = [
 
 
 class Fess(Bot):
-    log_channel: Optional[TextChannel] = None
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -50,9 +47,6 @@ class Fess(Bot):
                 )
 
     async def on_vote_delete(self, confess: Confess):
-        if not self.log_channel:
-            return
-
         deleted_data = DeletedData(
             uid=confess.user_id,
             mid=confess.message_id,
@@ -64,7 +58,18 @@ class Fess(Bot):
             attachment=confess.attachment,
             footer="To ban this user, use /fessmin muteid <ID>",
         )
-        await self.log_channel.send("Confession deleted from vote:", embed=embed)
+
+        server_conf = await ServerConfig.objects.get_or_none(
+            server_id=confess.server_id
+        )
+        if not server_conf or not server_conf.votelog_channel:
+            return
+
+        log_channel = cast(
+            Optional[TextChannel], self.get_channel(server_conf.votelog_channel)
+        )
+        if log_channel:
+            await log_channel.send("Confession deleted from vote:", embed=embed)
 
     async def on_sev_change(
         self, user: Union[discord.Member, str], server: Union[discord.Guild, int]
