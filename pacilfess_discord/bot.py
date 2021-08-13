@@ -1,7 +1,7 @@
 import sys
 import traceback
 from datetime import datetime, timedelta
-from typing import Union, cast, Optional
+from typing import Optional, Union, cast
 
 import discord
 from discord.channel import TextChannel
