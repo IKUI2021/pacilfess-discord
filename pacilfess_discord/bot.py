@@ -48,6 +48,11 @@ class Fess(Bot):
                 )
 
     async def on_vote_delete(self, confess: Confess):
+        """Logs data of vote deleted confess, if enabled.
+
+        This will create an encrypted identifier of the confess object,
+        to respect the sender's privacy. This identifier then will be used
+        for /fessmin muteid command if the admin wants to mute the user."""
         deleted_data = DeletedData(
             uid=confess.user_id,
             mid=confess.message_id,
@@ -73,8 +78,21 @@ class Fess(Bot):
             await log_channel.send("Confession deleted from vote:", embed=embed)
 
     async def on_sev_change(
-        self, user: Union[discord.Member, str], server: Union[discord.Guild, int]
+        self,
+        user: Union[discord.Member, str],
+        server: Union[discord.Guild, int],
     ):
+        """Mutes the user when the user gets a strike.
+
+        The length of the mute depends on how many strikes and its severity
+        in the last 30 days. The value of the severity is as follow:
+
+        small: 1
+        medium: 2
+        severe: 3
+
+        After the total severity has been calculated, the user is then muted for
+        total_violations ** 2 / 2 hour(s)."""
         current_time = datetime.now()
         month_ago = current_time - timedelta(weeks=4)
 
@@ -109,6 +127,10 @@ class Fess(Bot):
         )
 
     async def on_raw_reaction_add(self, event: RawReactionActionEvent):
+        """Checks new reaction if it is a vote deletion for a Confess.
+
+        If the reaction of X emoji is above the specified minimum vote, then
+        we will delete the confession and call on_vote_delete()."""
         confess = await Confess.objects.get_or_none(
             server_id=event.guild_id, message_id=event.message_id
         )
