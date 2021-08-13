@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional, cast
 
 import aiohttp
 from discord.channel import TextChannel
-from discord.ext.commands import Cog
+from discord.ext.commands import Cog, guild_only
 from discord_slash import SlashContext, cog_ext
 from discord_slash.utils.manage_commands import create_option
 
@@ -48,15 +48,13 @@ class Fess(Cog):
             ),
         ],
     )
+    @guild_only()
     async def _confess(
         self,
         ctx: SlashContext,
         confession: str,
         attachment: Optional[str] = None,
     ):
-        if not ctx.guild_id:
-            return await ctx.send("Cannot do this outside server.", hidden=True)
-
         current_time = datetime.now()
         user_hash = hash_user(ctx.author)
 
@@ -121,10 +119,8 @@ class Fess(Cog):
             )
         ],
     )
+    @guild_only()
     async def _delete_fess(self, ctx: SlashContext, link: Optional[str] = None):
-        if not ctx.guild_id:
-            return await ctx.send("Cannot do this outside server.", hidden=True)
-
         current_time = datetime.now()
         user_hash = hash_user(ctx.author)
         five_mins_ago = current_time - timedelta(minutes=5)
