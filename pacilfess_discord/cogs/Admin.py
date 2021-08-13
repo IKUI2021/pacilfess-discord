@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional, cast
 
 from discord import Member, TextChannel
-from discord.ext.commands import Cog
+from discord.ext.commands import Cog, check
 from discord_slash import SlashContext, cog_ext
 from discord_slash.model import SlashCommandOptionType
 from discord_slash.utils.manage_commands import create_choice, create_option
@@ -10,7 +10,7 @@ from discord_slash.utils.manage_commands import create_choice, create_option
 from pacilfess_discord.helper.embed import create_embed
 from pacilfess_discord.helper.hasher import decrypt_data, hash_user
 from pacilfess_discord.helper.regex import DISCORD_RE
-from pacilfess_discord.helper.utils import check_banned
+from pacilfess_discord.helper.utils import check_banned, is_admin
 from pacilfess_discord.models import Confess, DeletedData, ServerConfig, Violation
 
 if TYPE_CHECKING:
@@ -90,10 +90,8 @@ class Admin(Cog):
             severity_option,
         ],
     )
+    @check(is_admin)
     async def _mute(self, ctx: SlashContext, message: str, severity: int):
-        if not ctx.guild_id:
-            return await ctx.send("Cannot do this outside server.", hidden=True)
-
         current_time = datetime.now()
         confess = await self._delete_fess(ctx, message)
         if not confess:
@@ -123,10 +121,8 @@ class Admin(Cog):
             severity_option,
         ],
     )
+    @check(is_admin)
     async def _muteid(self, ctx: SlashContext, id: str, severity: int):
-        if not ctx.guild_id:
-            return await ctx.send("Cannot do this outside server.", hidden=True)
-
         current_time = datetime.now()
         try:
             deleted_data = decrypt_data(id, DeletedData)
@@ -159,10 +155,8 @@ class Admin(Cog):
             )
         ],
     )
+    @check(is_admin)
     async def _unmute(self, ctx: SlashContext, user: Member):
-        if not ctx.guild_id:
-            return await ctx.send("Cannot do this outside server.", hidden=True)
-
         existing_ban = await check_banned(hash_user(user), ctx.guild_id)
         if not existing_ban:
             await ctx.send("User is not muted.", hidden=True)
@@ -184,6 +178,7 @@ class Admin(Cog):
             )
         ],
     )
+    @check(is_admin)
     async def _delete(self, ctx: SlashContext, link: str):
         if await self._delete_fess(ctx, link):
             await ctx.send("Done!", hidden=True)

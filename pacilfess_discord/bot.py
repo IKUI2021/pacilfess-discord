@@ -6,16 +6,17 @@ from typing import Union, cast, Optional
 import discord
 from discord.channel import TextChannel
 from discord.ext import commands
-from discord.ext.commands import Bot
+from discord.ext.commands import Bot, Context
 from discord.raw_models import RawReactionActionEvent
 from discord.reaction import Reaction
 from discord_slash import SlashCommand
+from discord_slash.context import SlashContext
 
 from pacilfess_discord.config import config
 from pacilfess_discord.helper.database import database
 from pacilfess_discord.helper.embed import create_embed
 from pacilfess_discord.helper.hasher import enc_data, hash_user
-from pacilfess_discord.helper.utils import check_banned
+from pacilfess_discord.helper.utils import Forbidden, NoConfig, check_banned
 from pacilfess_discord.models import (
     BannedUser,
     Confess,
@@ -133,7 +134,25 @@ class Fess(Bot):
             await confess.delete()
             await self.on_vote_delete(confess)
 
-    async def on_command_error(self, ctx, error):
+    async def on_slash_command_error(self, ctx: SlashContext, error: Exception):
+        if isinstance(error, commands.NoPrivateMessage):
+            return await ctx.send("You can only use this inside a server.", hidden=True)
+        elif isinstance(error, NoConfig):
+            return await ctx.send("Server is not configured.", hidden=True)
+        elif isinstance(error, Forbidden):
+            return await ctx.send("You cannot use this command.", hidden=True)
+        else:
+            error = getattr(error, "original", error)
+            traceback.print_exception(
+                type(error), error, error.__traceback__, file=sys.stderr
+            )
+            return await ctx.send(
+                "An exception has occured: `{}` on command `{}`".format(
+                    error.__class__.__name__, ctx.name
+                )
+            )
+
+    async def on_command_error(self, ctx: Context, error: Exception):
         ignored = (commands.CommandNotFound, commands.CheckFailure)
 
         if isinstance(error, ignored):
