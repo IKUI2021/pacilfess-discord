@@ -70,6 +70,10 @@ class Config(commands.Cog):
     @owner_or_admin()
     async def minimum_vote(self, ctx: Context, minimum: int):
         assert isinstance(ctx.guild, Guild)
+
+        if minimum < 1:
+            return await ctx.send("Minimum vote needs to be at least 1.")
+
         server_conf = await ServerConfig.objects.get_or_create(server_id=ctx.guild.id)
         server_conf.minimum_vote = minimum
         await server_conf.update()
