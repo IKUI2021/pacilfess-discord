@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+from discord import Embed
 
 from discord.channel import TextChannel
 from discord.ext import commands
@@ -18,7 +19,10 @@ class Config(commands.Cog):
     def __init__(self, bot: "Fess"):
         self.bot = bot
 
-    @commands.command(help="Sets where the confessions are going to be sent.")
+    @commands.command(
+        name="fessChannel",
+        help="Sets where the confessions are going to be sent.",
+    )
     @guild_only()
     @owner_or_admin()
     async def fess_channel(self, ctx: Context, channel: TextChannel):
@@ -29,7 +33,8 @@ class Config(commands.Cog):
         await ctx.send(f"Done setting confession channel to {channel.mention}.")
 
     @commands.command(
-        help="Sets where the vote deleted messages are going to be logged."
+        name="voteLogChannel",
+        help="Sets where the vote deleted messages are going to be logged.",
     )
     @guild_only()
     @owner_or_admin()
@@ -40,7 +45,10 @@ class Config(commands.Cog):
         await server_conf.update()
         await ctx.send(f"Done setting vote logging channel to {channel.mention}.")
 
-    @commands.command(help="Adds a role to the list of bot admins.")
+    @commands.command(
+        name="addAdminRole",
+        help="Adds a role to the list of bot admins.",
+    )
     @guild_only()
     @owner_or_admin()
     async def add_admin(self, ctx: Context, role: Role):
@@ -54,7 +62,10 @@ class Config(commands.Cog):
         await server_conf.update()
         await ctx.send(f"Done adding {role.mention} to admins.")
 
-    @commands.command(help="Override the minimum vote required for vote deletion.")
+    @commands.command(
+        name="minimumVote",
+        help="Override the minimum vote required for vote deletion.",
+    )
     @guild_only()
     @owner_or_admin()
     async def minimum_vote(self, ctx: Context, minimum: int):
@@ -64,7 +75,7 @@ class Config(commands.Cog):
         await server_conf.update()
         await ctx.send(f"Done setting minimum vote deletion to {minimum}.")
 
-    @commands.command(help="List all of the configuration.")
+    @commands.command(name="listConfig", help="List all of the configuration.")
     @guild_only()
     @owner_or_admin()
     async def list(self, ctx: Context):
@@ -96,8 +107,7 @@ class Config(commands.Cog):
                 admins_str = ", ".join(s)
 
         conf_str = (
-            "Server configuration:"
-            + "\r\nFess channel: "
+            "Fess channel: "
             + channel_str
             + "\r\nVote log channel: "
             + votelog_str
@@ -106,7 +116,9 @@ class Config(commands.Cog):
             + "\r\nMinimum vote for deletion: "
             + str(server_conf.minimum_vote)
         )
-        await ctx.send(conf_str)
+
+        embed = Embed(title="Server Configuration", description=conf_str)
+        await ctx.send(embed=embed)
 
 
 def setup(bot: "Fess"):
