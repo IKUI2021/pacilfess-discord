@@ -46,9 +46,13 @@ class Config(commands.Cog):
     async def add_admin(self, ctx: Context, role: Role):
         assert isinstance(ctx.guild, Guild)
         server_conf = await ServerConfig.objects.get_or_create(server_id=ctx.guild.id)
+        if role.id in server_conf.admin_roles:
+            await ctx.send("Users with that role is already assigned as admin.")
+            return
+
         server_conf.admin_roles.append(role.id)
         await server_conf.update()
-        await ctx.send(f"Done adding {Role.mention} to admins.")
+        await ctx.send(f"Done adding {role.mention} to admins.")
 
     @commands.command(help="Override the minimum vote required for vote deletion.")
     @guild_only()
