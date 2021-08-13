@@ -58,6 +58,24 @@ class Fess(Cog):
         current_time = datetime.now()
         user_hash = hash_user(ctx.author)
 
+        # Check if server is configured.
+        server_conf = await ServerConfig.objects.get_or_create(server_id=ctx.guild_id)
+        if not server_conf.confession_channel:
+            return await ctx.send(
+                "This server has not been configured. Please contact the server admin.",
+                hidden=True,
+            )
+
+        # Fetch the target channel, and check if it exists.
+        target_channel = cast(
+            Optional[TextChannel], self.bot.get_channel(server_conf.confession_channel)
+        )
+        if not target_channel:
+            return await ctx.send(
+                "Cannot seem to find confession channel. Maybe it was deleted?",
+                hidden=True,
+            )
+
         # Check if sender is banned or not.
         banned_data = await check_banned(user_hash, ctx.guild_id)
         if banned_data:
@@ -76,23 +94,6 @@ class Fess(Cog):
             return
 
         embed = create_embed(confession, attachment)
-
-        server_conf = await ServerConfig.objects.get_or_create(server_id=ctx.guild_id)
-        if not server_conf.confession_channel:
-            return await ctx.send(
-                "This server has not been configured. Please contact the server admin.",
-                hidden=True,
-            )
-
-        target_channel = cast(
-            Optional[TextChannel], self.bot.get_channel(server_conf.confession_channel)
-        )
-        if not target_channel:
-            return await ctx.send(
-                "Cannot seem to find confession channel. Maybe it was deleted?",
-                hidden=True,
-            )
-
         fess_message = await target_channel.send(embed=embed)
         await fess_message.add_reaction("❌")
 
@@ -124,6 +125,25 @@ class Fess(Cog):
         current_time = datetime.now()
         user_hash = hash_user(ctx.author)
         five_mins_ago = current_time - timedelta(minutes=5)
+
+        # Check if server is configured.
+        server_conf = await ServerConfig.objects.get_or_create(server_id=ctx.guild_id)
+        if not server_conf.confession_channel:
+            return await ctx.send(
+                "This server has not been configured. Please contact the server admin.",
+                hidden=True,
+            )
+
+        # Fetch the target channel, and check if it exists.
+        confession_channel = cast(
+            Optional[TextChannel], self.bot.get_channel(server_conf.confession_channel)
+        )
+        if not confession_channel:
+            return await ctx.send(
+                "Cannot seem to find confession channel. Maybe it was deleted?",
+                hidden=True,
+            )
+
         if link:
             re_result = DISCORD_RE.search(link)
             if not re_result:
@@ -137,6 +157,8 @@ class Fess(Cog):
                 sendtime__gt=five_mins_ago.timestamp(),
             )
         else:
+            # If link is not found, check the last 5 mins for confess and
+            # pick the LATEST one
             confess = (
                 await Confess.objects.order_by("-sendtime")
                 .limit(1)
@@ -153,22 +175,6 @@ class Fess(Cog):
                 hidden=True,
             )
             return
-
-        server_conf = await ServerConfig.objects.get_or_create(server_id=ctx.guild_id)
-        if not server_conf.confession_channel:
-            return await ctx.send(
-                "This server has not been configured. Please contact the server admin.",
-                hidden=True,
-            )
-
-        confession_channel = cast(
-            Optional[TextChannel], self.bot.get_channel(server_conf.confession_channel)
-        )
-        if not confession_channel:
-            return await ctx.send(
-                "Cannot seem to find confession channel. Maybe it was deleted?",
-                hidden=True,
-            )
 
         confess_id: int = confess.message_id
         confess_msg = await confession_channel.fetch_message(confess_id)

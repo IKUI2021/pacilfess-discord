@@ -32,22 +32,6 @@ class Admin(Cog):
         self.bot = bot
 
     async def _delete_fess(self, ctx: SlashContext, link: str) -> Optional[Confess]:
-        re_result = DISCORD_RE.search(link)
-        if not re_result:
-            await ctx.send("Invalid confession link!", hidden=True)
-            return None
-
-        confess = await Confess.objects.get_or_none(
-            message_id=int(re_result.group("MESSAGE")), server_id=ctx.guild_id
-        )
-
-        if not confess:
-            await ctx.send(
-                "No such confession found.",
-                hidden=True,
-            )
-            return None
-
         server_conf = await ServerConfig.objects.get_or_create(server_id=ctx.guild_id)
         if not server_conf.confession_channel:
             return await ctx.send(
@@ -63,6 +47,22 @@ class Admin(Cog):
                 "Cannot seem to find confession channel. Maybe it was deleted?",
                 hidden=True,
             )
+
+        re_result = DISCORD_RE.search(link)
+        if not re_result:
+            await ctx.send("Invalid confession link!", hidden=True)
+            return None
+
+        confess = await Confess.objects.get_or_none(
+            message_id=int(re_result.group("MESSAGE")), server_id=ctx.guild_id
+        )
+
+        if not confess:
+            await ctx.send(
+                "No such confession found.",
+                hidden=True,
+            )
+            return None
 
         confess_id: int = confess.message_id
         confess_msg = await confession_channel.fetch_message(confess_id)
