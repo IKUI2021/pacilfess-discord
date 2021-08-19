@@ -24,19 +24,14 @@ Please look at [the wiki](https://github.com/Ilmu-Komputer-UI-2021/pacilfess-dis
 
 ```json
 {
-    "db_path": "data.db",
-    "admins": [],
-    "admin_roles": [],
-    "channel_id": 00000000000000,
-    "guild_id": 00000000000000,
-    "minimum_vote": 5,
+    "db_path": "",
+    "default_vote": 1,
     "token": "",
-    "log_channel_id": 00000000000000
+    "secret": ""
 }
 ```
 
--   Fill in `admins` with list of Discord user IDs, and `channel_id` with the target channel ID.
--   Create an empty file, and run `database.sql` to that database.
+-   Run `poetry run alembic upgrade head`.
 
 ## Running
 
@@ -44,4 +39,4 @@ Please look at [the wiki](https://github.com/Ilmu-Komputer-UI-2021/pacilfess-dis
 
 ## TODO
 
--   Add checks on `/fessmin`
+Nothing here.
