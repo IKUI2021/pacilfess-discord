@@ -16,7 +16,7 @@ def create_embed(
 
     color = Colour.random() if use_quote else Colour.red()
     embed = Embed(
-        title="Anonymous confession",
+        title="Anonymous Confession",
         description=confession_content,
         color=color,
     )
