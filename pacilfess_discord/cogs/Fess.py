@@ -119,6 +119,7 @@ class Fess(Cog):
             )
             return
 
+        raw_confession = confession
         reply = await self._get_reply(ctx, target_channel, confession)
         if reply:
             confession = DISCORD_RE.sub("", confession).strip()
@@ -137,7 +138,7 @@ class Fess(Cog):
             server_id=ctx.guild_id,
             message_id=fess_message.id,
             user_id=user_hash,
-            content=confession,
+            content=raw_confession,
             sendtime=current_time.timestamp(),
             attachment=attachment,
         )
