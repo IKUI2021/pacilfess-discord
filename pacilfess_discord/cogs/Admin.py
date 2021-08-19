@@ -92,6 +92,8 @@ class Admin(Cog):
     )
     @check(is_admin)
     async def _mute(self, ctx: SlashContext, message: str, severity: int):
+        await ctx.defer(hidden=True)
+
         current_time = datetime.now()
         confess = await self._delete_fess(ctx, message)
         if not confess:
@@ -123,6 +125,8 @@ class Admin(Cog):
     )
     @check(is_admin)
     async def _muteid(self, ctx: SlashContext, id: str, severity: int):
+        await ctx.defer(hidden=True)
+
         current_time = datetime.now()
         try:
             deleted_data = decrypt_data(id, DeletedData)
@@ -157,6 +161,8 @@ class Admin(Cog):
     )
     @check(is_admin)
     async def _unmute(self, ctx: SlashContext, user: Member):
+        await ctx.defer(hidden=True)
+
         existing_ban = await check_banned(hash_user(user), ctx.guild_id)
         if not existing_ban:
             await ctx.send("User is not muted.", hidden=True)
@@ -180,6 +186,8 @@ class Admin(Cog):
     )
     @check(is_admin)
     async def _delete(self, ctx: SlashContext, link: str):
+        await ctx.defer(hidden=True)
+
         if await self._delete_fess(ctx, link):
             await ctx.send("Done!", hidden=True)
 

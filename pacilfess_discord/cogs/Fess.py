@@ -80,6 +80,8 @@ class Fess(Cog):
         confession: str,
         attachment: Optional[str] = None,
     ):
+        await ctx.defer(hidden=True)
+
         confession = confession.strip()
         current_time = datetime.now()
         user_hash = hash_user(ctx.author)
@@ -158,6 +160,8 @@ class Fess(Cog):
     )
     @guild_only()
     async def _delete_fess(self, ctx: SlashContext, link: Optional[str] = None):
+        await ctx.defer(hidden=True)
+
         current_time = datetime.now()
         user_hash = hash_user(ctx.author)
         five_mins_ago = current_time - timedelta(minutes=5)
