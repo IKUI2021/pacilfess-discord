@@ -123,7 +123,7 @@ class Fess(Cog):
         if reply:
             confession = DISCORD_RE.sub("", confession).strip()
             if not confession:
-                await ctx.send("Please send a message!")
+                await ctx.send("Please send a message!", hidden=True)
                 return
 
         embed = create_embed(confession, attachment)
