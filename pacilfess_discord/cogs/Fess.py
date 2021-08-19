@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional, cast
 
 import aiohttp
+import discord
 from discord.channel import TextChannel
 from discord.ext.commands import Cog, guild_only
 from discord_slash import SlashContext, cog_ext
@@ -30,6 +31,30 @@ class Fess(Cog):
         except Exception:
             return False
 
+    async def _get_reply(
+        self, ctx: SlashContext, target_channel: TextChannel, confession: str
+    ):
+        link = DISCORD_RE.search(confession)
+        if link:
+            start, end = link.span()
+            if start == 0 or end == len(confession):
+                message_id = int(link.group("MESSAGE"))
+
+                # Ensure message actually exists and is in confess channel.
+                confess = await Confess.objects.get_or_none(
+                    server_id=ctx.guild_id,
+                    message_id=message_id,
+                )
+                if not confess:
+                    return None
+
+                message_ref = discord.MessageReference(
+                    message_id=message_id,
+                    channel_id=target_channel.id,
+                )
+                return message_ref
+        return None
+
     @cog_ext.cog_slash(
         name="confess",
         description="Submits a confession.",
@@ -55,6 +80,7 @@ class Fess(Cog):
         confession: str,
         attachment: Optional[str] = None,
     ):
+        confession = confession.strip()
         current_time = datetime.now()
         user_hash = hash_user(ctx.author)
 
@@ -93,8 +119,17 @@ class Fess(Cog):
             )
             return
 
+        reply = await self._get_reply(ctx, target_channel, confession)
+        if reply:
+            confession = DISCORD_RE.sub("", confession).strip()
+            if not confession:
+                await ctx.send("Please send a message!")
+                return
+
         embed = create_embed(confession, attachment)
-        fess_message = await target_channel.send(embed=embed)
+        fess_message = await target_channel.send(
+            embed=embed, reference=reply, mention_author=False
+        )
         await fess_message.add_reaction("❌")
 
         # Save to database for moderation purposes.
