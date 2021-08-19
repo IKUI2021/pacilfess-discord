@@ -10,7 +10,7 @@ Pacilfess is a Discord bot that sends a confession (or actually--message) anonym
 
 ## How does it work?
 
-Please look at [the wiki](/wiki).
+Please look at [the wiki](https://github.com/Ilmu-Komputer-UI-2021/pacilfess-discord/wiki).
 
 ---
 
