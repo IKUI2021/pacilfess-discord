@@ -4,6 +4,7 @@ from typing import List, Optional
 
 import ormar
 from dataclasses_json import DataClassJsonMixin
+from pydantic import Json
 
 from pacilfess_discord.config import config
 from pacilfess_discord.helper.database import database, metadata
@@ -70,8 +71,9 @@ class ServerConfig(ormar.Model):
     server_id: int = ormar.Integer(primary_key=True)
     votelog_channel: Optional[int] = ormar.Integer(nullable=True)
     confession_channel: Optional[int] = ormar.Integer(nullable=True)
-    admin_roles: List[int] = ormar.JSON(default="[]")
+    admin_roles: Json[List[int]] = ormar.JSON(default="[]")
     minimum_vote: int = ormar.Integer(default=config.default_vote)
+    cooldown_time: int = ormar.Integer(default=0)
 
 
 @dataclass

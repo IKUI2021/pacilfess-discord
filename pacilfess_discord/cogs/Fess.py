@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, Dict, Optional, cast
 
 import aiohttp
 import discord
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 class Fess(Cog):
     def __init__(self, bot: "FessBot"):
         self.bot = bot
+        self.last_timestamp: Dict[str, float] = {}
 
     async def _check_attachment(self, url: str):
         try:
@@ -93,6 +94,21 @@ class Fess(Cog):
                 "This server has not been configured. Please contact the server admin.",
                 hidden=True,
             )
+
+        # Check server cooldown
+        if server_conf.cooldown_time:
+            if user_hash in self.last_timestamp:
+                last_time = self.last_timestamp[user_hash]
+                delta = current_time.timestamp() - last_time
+                if delta < server_conf.cooldown_time:
+                    eta = int(server_conf.cooldown_time - delta)
+                    return await ctx.send(
+                        (
+                            "Server is in cooldown mode, "
+                            + f"you may send a confession again after {eta} seconds."
+                        ), hidden=True
+                    )
+            self.last_timestamp[user_hash] = current_time.timestamp()
 
         # Fetch the target channel, and check if it exists.
         target_channel = cast(

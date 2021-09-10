@@ -33,6 +33,22 @@ class Config(commands.Cog):
         await ctx.send(f"Done setting confession channel to {channel.mention}.")
 
     @commands.command(
+        name="cooldown",
+        help="Sets the cooldown time, use 0 to disable.",
+    )
+    @guild_only()
+    @owner_or_admin()
+    async def set_cooldown(self, ctx: Context, cooldown: int):
+        assert isinstance(ctx.guild, Guild)
+        if cooldown < 0:
+            return await ctx.send("Cooldown cannot be negative.")
+
+        server_conf = await ServerConfig.objects.get_or_create(server_id=ctx.guild.id)
+        server_conf.cooldown_time = cooldown
+        await server_conf.update()
+        await ctx.send(f"Done setting cooldown time to {cooldown} seconds.")
+
+    @commands.command(
         name="voteLogChannel",
         help="Sets where the vote deleted messages are going to be logged.",
     )
