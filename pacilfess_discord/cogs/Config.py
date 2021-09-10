@@ -126,6 +126,10 @@ class Config(commands.Cog):
             if s:
                 admins_str = ", ".join(s)
 
+        cooldown = "Disabled"
+        if server_conf.cooldown_time:
+            cooldown = str(server_conf.cooldown_time)
+
         conf_str = (
             "Fess channel: "
             + channel_str
@@ -135,6 +139,7 @@ class Config(commands.Cog):
             + admins_str
             + "\r\nMinimum vote for deletion: "
             + str(server_conf.minimum_vote)
+            + f"\r\nCoooldown time: {cooldown}s"
         )
 
         embed = Embed(title="Server Configuration", description=conf_str)
