@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class Fess(Cog):
     def __init__(self, bot: "FessBot"):
         self.bot = bot
-        self.last_timestamp: Dict[str, float] = {}
+        self.last_timestamp: Dict[int, Dict[str, float]] = {}
 
     async def _check_attachment(self, url: str):
         try:
@@ -96,9 +96,11 @@ class Fess(Cog):
             )
 
         # Check server cooldown
-        if server_conf.cooldown_time:
-            if user_hash in self.last_timestamp:
-                last_time = self.last_timestamp[user_hash]
+        if server_conf.cooldown_time and ctx.guild_id in self.last_timestamp:
+            server_timestamps = self.last_timestamp[ctx.guild_id]
+
+            if user_hash in server_timestamps:
+                last_time = server_timestamps[user_hash]
                 delta = current_time.timestamp() - last_time
                 if delta < server_conf.cooldown_time:
                     eta = int(server_conf.cooldown_time - delta)
@@ -106,9 +108,13 @@ class Fess(Cog):
                         (
                             "Server is in cooldown mode, "
                             + f"you may send a confession again after {eta} seconds."
-                        ), hidden=True
+                        ),
+                        hidden=True,
                     )
-            self.last_timestamp[user_hash] = current_time.timestamp()
+            server_timestamps[user_hash] = current_time.timestamp()
+
+        if ctx.guild_id not in self.last_timestamp:
+            self.last_timestamp[ctx.guild_id] = {}
 
         # Fetch the target channel, and check if it exists.
         target_channel = cast(
